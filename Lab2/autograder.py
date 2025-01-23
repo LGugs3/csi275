@@ -19,7 +19,7 @@ Pieter Abbeel (pabbeel@cs.berkeley.edu).
 
 # imports from python standard library
 import grading
-import imp
+import importlib
 import optparse
 import os
 import re
@@ -134,8 +134,9 @@ def _confirm_generate():
 def load_module_file(module_name, file_path):
     """Load module given name and path."""
     with open(file_path, 'r') as f:
-        return imp.load_module(module_name, f, "%s.py" % module_name,
-                               (".py", "r", imp.PY_SOURCE))
+        return importlib.import_module(module_name)
+        #return importlib.load_module(module_name, f, "%s.py" % module_name,
+        #                       (".py", "r", imp.PY_SOURCE))
 
 
 def read_file(path, root=""):
