@@ -18,8 +18,14 @@ assignment may, for the purpose of assessing this assignment:
 import socket
 
 
+class InvalidList(Exception):
+    """Custom Exception."""
+
+    pass
+
+
 class CustomList:
-    """Encapsulate list sorting method."""
+    """Encapsulate list creation and sorting method."""
 
     def __init__(self):
         """Init fxn."""
@@ -63,20 +69,26 @@ class CustomList:
             data += str(ele) + ' '
 
         server.sendall(data.encode("ascii"))
+        print("Unsorted List sent to server")
 
         sorted_list: bytearray = bytearray()
         response: bytes = bytes()
 
-        print("recieving data", end="")
+        print("Recieving data", end="")
         while True:
             print(".", end="")
             response = server.recv(buffer_size)
             if not response:
+                # Client disconnected
                 break
             sorted_list += response
             if len(response) < buffer_size:
+                # Response size is smaller than max recieve size(no more data)
                 break
         server.close()
         print()
+        decoded_list = sorted_list.decode("ascii")
+        if "SORTED" not in decoded_list:
+            raise InvalidList("List submitted to server not formatted correctly")
 
-        return sorted_list.decode("ascii")
+        return decoded_list
