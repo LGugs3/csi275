@@ -50,16 +50,17 @@ class UDPClient:
         if not self.use_msg_id:  # without IDs
             for char in msg:
                 curr_wait_time = self.__reset_timeout()
-                try:
-                    self.send_msg_server(char.encode("ascii"))
-                    response, response_addr = \
-                        self.udp_sock.recvfrom(constants.MAX_BYTES)
-                    full_response += response.decode("ascii")
-                except socket.timeout:
-                    curr_wait_time *= 2
-                    self.udp_sock.settimeout(curr_wait_time)
-                    if curr_wait_time >= constants.MAX_TIMEOUT:
-                        raise TimeOutError("Maximum Timeout Time reached")
+                result: bool | str = True
+                while not type(result) is str:
+                    result = self.__send_msg(char)
+
+                    if type(result) is bool and not result:
+                        curr_wait_time *= 2
+                        self.udp_sock.settimeout(curr_wait_time)
+                        if curr_wait_time >= constants.MAX_TIMEOUT:
+                            raise TimeOutError("MAX timeout reached")
+                    elif type(result) is str:
+                        full_response += result
         else:  # use IDs to order responses
             for char in msg:
                 next_id = random.randint(0, constants.MAX_ID)
@@ -102,6 +103,17 @@ class UDPClient:
             return False
         msg_parts = response.decode("ascii").split('|')
         return msg_parts[1] if int(msg_parts[0]) == id else True
+
+    def __send_msg(self, msg: str) -> bool | str:
+        """Send UDP packet to server without ID."""
+        try:
+            self.send_msg_server(msg.encode("ascii"))
+            response, response_addr = \
+                self.udp_sock.recvfrom(constants.MAX_BYTES)
+        except socket.timeout:
+            return False
+        else:
+            return response.decode("ascii")
 
     def __reset_timeout(self) -> float:
         self.udp_sock.settimeout(constants.INITIAL_TIMEOUT)
