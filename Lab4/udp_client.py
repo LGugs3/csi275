@@ -39,6 +39,7 @@ class UDPClient:
 
         self.udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         udp_send = self.udp_sock.sendto
+        # use lambda b/c sendto does not have keyword args
         self.send_msg_server = partial(lambda data, addr: udp_send(data, addr),
                                        addr=self.server_addr)
 
@@ -47,38 +48,28 @@ class UDPClient:
     def send_message_by_character(self, msg: str) -> str:
         """Send msg to sever with each packet containing one character."""
         full_response: str = ""
-        if not self.use_msg_id:  # without IDs
-            for char in msg:
-                curr_wait_time = self.__reset_timeout()
-                result: bool | str = True
-                while not type(result) is str:
-                    result = self.__send_msg(char)
-
-                    if type(result) is bool and not result:
-                        curr_wait_time *= 2
-                        self.udp_sock.settimeout(curr_wait_time)
-                        if curr_wait_time >= constants.MAX_TIMEOUT:
-                            raise TimeOutError("MAX timeout reached")
-                    elif type(result) is str:
-                        full_response += result
-        else:  # use IDs to order responses
-            for char in msg:
+        for char in msg:
+            if self.use_msg_id:
                 next_id = random.randint(0, constants.MAX_ID)
-                result: bool | str = True
-                curr_wait_time = self.__reset_timeout()
+            result: bool | str = True
+            curr_wait_time = self.__reset_timeout()
 
-                while not type(result) is str:  # until a string is returned
-                    msg = (str(next_id) + '|' + char)  # format msg to standard
+            while not type(result) is str:  # until a string is returned
+                if not self.use_msg_id:
+                    result = self.__send_msg(char)
+                else:
+                    # format msg to standard
+                    msg = (str(next_id) + '|' + char)
                     result = self.__send_msg_with_id(msg, next_id)
 
-                    # recvfrom() timed out
-                    if type(result) is bool and not result:
-                        curr_wait_time *= 2
-                        self.udp_sock.settimeout(curr_wait_time)
-                        if curr_wait_time >= constants.MAX_TIMEOUT:
-                            raise TimeOutError("Maximum Timeout Time reached")
-                    elif type(result) is str:
-                        full_response += result
+                # recvfrom() timed out
+                if type(result) is bool and not result:
+                    curr_wait_time *= 2
+                    self.udp_sock.settimeout(curr_wait_time)
+                    if curr_wait_time >= constants.MAX_TIMEOUT:
+                        raise TimeOutError("Maximum Timeout Time reached")
+                elif type(result) is str:
+                    full_response += result
 
         return full_response
 
@@ -105,7 +96,11 @@ class UDPClient:
         return msg_parts[1] if int(msg_parts[0]) == id else True
 
     def __send_msg(self, msg: str) -> bool | str:
-        """Send UDP packet to server without ID."""
+        """
+        Send UDP packet to server without ID.
+
+        Returns false if timeout otherwise returns packet recieved.
+        """
         try:
             self.send_msg_server(msg.encode("ascii"))
             response, response_addr = \
