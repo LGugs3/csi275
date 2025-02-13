@@ -89,6 +89,7 @@ class CustomList:
         print()
         decoded_list = sorted_list.decode("ascii")
         if "SORTED" not in decoded_list:
-            raise InvalidList("List submitted to server not formatted correctly")
+            raise InvalidList("List submitted to server not formatted \
+                              correctly")
 
         return decoded_list

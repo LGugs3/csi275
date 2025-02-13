@@ -45,6 +45,10 @@ class UDPClient:
 
         self.udp_sock.settimeout(constants.INITIAL_TIMEOUT)
 
+    def __del__(self):
+        """Deconstructor method."""
+        self.udp_sock.close()
+
     def send_message_by_character(self, msg: str) -> str:
         """Send msg to sever with each packet containing one character."""
         full_response: str = ""
