@@ -2,7 +2,7 @@
 
 import socket
 
-HOST = "127.0.0.1"
+HOST = "localhost"
 PORT = 20000
 MAX_BYTES = 4096
 
@@ -18,16 +18,24 @@ class SortServer:
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_addr = host, port
         self.server.bind(self.server_addr)
+        print(f"Server binded to {self.server_addr}")
+
+    def __del__(self):
+        """Close connection to socket."""
+        print("Closing server socket")
+        self.server.close()
 
     def run_server(self):
         """Don't forget your docstring."""
         self.server.listen(20)
 
         while True:
+            print("Waiting for connection")
             connection, recv_addr = self.server.accept()
+            print(f"Server found connection from: {recv_addr}")
 
-            msg_arr: list = []
             while True:
+                msg_arr: list = []
                 msg_recv = connection.recv(MAX_BYTES)
                 byte_length = len(msg_recv)
                 if not msg_recv:
@@ -38,12 +46,13 @@ class SortServer:
                 if byte_length == MAX_BYTES:
                     continue
 
-                response: list[int | float] | bool = \
+                response: list[int | float | str] | bool = \
                     self.__parse_packet(msg_arr)
 
                 self.__respond_client_error(connection) if not response else \
                     self.__respond_client_success(connection, response)
-                break
+
+            print("Disconnected")
 
     def __parse_packet(self, unparsed_list: list) -> list | bool:
         """Parse recieved list into response."""
@@ -51,8 +60,10 @@ class SortServer:
         sort_method: str = 'a'
         possible_sorts: list[str] = ['a', 'd', 's']
         for idx, ele in enumerate(unparsed_list):
-            if idx == 0 and ele != "LIST":
-                return False
+            if idx == 0:
+                if ele != "LIST":
+                    return False
+                continue
             if idx == len(unparsed_list) - 1:
                 if '|' in ele:
                     result = ele.split('|')
@@ -60,18 +71,18 @@ class SortServer:
                         return False
                     sort_method = result[1]
                     ele = result[0]
-            else:
-                char: int | float | bool = self.__check_int_float(ele)
-                if not char:
-                    return False
-                parsed_list.append(char)
+
+            char: int | float | bool = self.__check_int_float(ele)
+            if not char:
+                return False
+            parsed_list.append(char)
 
         if sort_method == 'a':
             parsed_list.sort()
         elif sort_method == 'd':
             parsed_list.sort(reverse=True)
         elif sort_method == 's':
-            return [str(ele) for ele in parsed_list].sort()
+            parsed_list = sorted([str(ele) for ele in parsed_list])
 
         return parsed_list
 
@@ -86,15 +97,13 @@ class SortServer:
 
     def __check_int_float(self, char: str) -> int | float | bool:
         """Check if character is an int or float."""
-        if char.isnumeric():
+        try:
             return int(char)
-        else:
+        except ValueError:
             try:
-                char = float(char)
+                return float(char)
             except ValueError:
                 return False
-            else:
-                return char
 
 
 if __name__ == "__main__":
