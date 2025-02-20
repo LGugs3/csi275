@@ -59,7 +59,7 @@ class Connection:
         return data
 
     def __respond_success(self) -> None:
-        success_msg = f"I recieved {self.msg_length} bytes."
+        success_msg = f"I received {self.msg_length} bytes."
         self.connection.sendall(len(success_msg).to_bytes(4, byteorder="big") +
                                 success_msg.encode("ascii"))
 
