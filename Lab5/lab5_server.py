@@ -1,4 +1,20 @@
-"""Don't forget your docstring."""
+"""Server code for Lab 5.
+
+Author: Liam Gugliotta
+Class: CSI-275-01
+Assignment: Lab 5 -- Sorting Server
+Due Date: February 17, 2020, 11:59 PM
+
+Certification of Authenticity:
+I certify that this is entirely my own work, except where I have given
+fully-documented references to the work of others. I understand the definition
+and consequences of plagiarism and acknowledge that the assessor of this
+assignment may, for the purpose of assessing this assignment:
+- Reproduce this assignment and provide a copy to another member of academic
+- staff; and/or Communicate a copy of this assignment to a plagiarism checking
+- service (which may then retain a copy of this assignment on its database for
+- the purpose of future plagiarism checking)
+"""
 
 import socket
 
@@ -14,19 +30,19 @@ class SortServer:
     server_addr: tuple[str, int]
 
     def __init__(self, host, port):
-        """Don't forget your docstring."""
+        """Init SortServer."""
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_addr = host, port
         self.server.bind(self.server_addr)
         print(f"Server binded to {self.server_addr}")
 
     def __del__(self):
-        """Close connection to socket."""
+        """Deconstructor for SortServer."""
         print("Closing server socket")
         self.server.close()
 
     def run_server(self):
-        """Don't forget your docstring."""
+        """Start Server."""
         self.server.listen(20)
 
         while True:
@@ -46,35 +62,42 @@ class SortServer:
                 if byte_length == MAX_BYTES:
                     continue
 
-                response: list[int | float | str] | bool = \
+                response: list[int | float | str] | None = \
                     self.__parse_packet(msg_arr)
 
-                self.__respond_client_error(connection) if not response else \
-                    self.__respond_client_success(connection, response)
+                self.__respond_client_error(connection) if response is None \
+                    else self.__respond_client_success(connection, response)
 
             print("Disconnected")
+            connection.close()
 
-    def __parse_packet(self, unparsed_list: list) -> list | bool:
-        """Parse recieved list into response."""
+    def __parse_packet(self, unparsed_list: list) -> list | None:
+        """
+        Parse recieved list into response.
+
+        Returns list if packet is valid, otherwise returns None
+        """
+        if len(unparsed_list) == 1:
+            return None
         parsed_list: list[int, float] = []
         sort_method: str = 'a'
         possible_sorts: list[str] = ['a', 'd', 's']
         for idx, ele in enumerate(unparsed_list):
             if idx == 0:
                 if ele != "LIST":
-                    return False
+                    return None
                 continue
             if idx == len(unparsed_list) - 1:
                 if '|' in ele:
                     result = ele.split('|')
                     if result[1] not in possible_sorts:
-                        return False
+                        return None
                     sort_method = result[1]
                     ele = result[0]
 
-            char: int | float | bool = self.__check_int_float(ele)
-            if not char:
-                return False
+            char: int | float | None = self.__check_int_float(ele)
+            if char is None:
+                return None
             parsed_list.append(char)
 
         if sort_method == 'a':
@@ -95,7 +118,7 @@ class SortServer:
     def __respond_client_error(self, connection) -> None:
         connection.sendall("ERROR".encode("ascii"))
 
-    def __check_int_float(self, char: str) -> int | float | bool:
+    def __check_int_float(self, char: str) -> int | float | None:
         """Check if character is an int or float."""
         try:
             return int(char)
@@ -103,7 +126,7 @@ class SortServer:
             try:
                 return float(char)
             except ValueError:
-                return False
+                return None
 
 
 if __name__ == "__main__":
