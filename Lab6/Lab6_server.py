@@ -92,7 +92,6 @@ class LengthServer:
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_addr = host, port
         self.server.bind(self.server_addr)
-        self.msg_length = 4096
         self.active_connections: list[Connection] = []
         print(f"Server binded to {self.server_addr}")
 
@@ -102,15 +101,18 @@ class LengthServer:
         print("Closed socket.")
 
     def __add_connection(self, connection, recv_addr) -> Connection | None:
+        """Check for duplicate Connections.
+
+        Returns Connection() if the connection is new, otherwise returns None
+        """
         print(f"Recieved connection from {recv_addr}")
         # check for duplicate connections
-        for connect in self.active_connections:
-            if connect.addr == recv_addr:
-                return None
-
-        return Connection(connection, recv_addr)
+        matching_addr = any(connect.addr == recv_addr
+                            for connect in self.active_connections)
+        return None if matching_addr else Connection(connection, recv_addr)
 
     def __interact_clients(self):
+        """Do specified activity with clients."""
         for connection in self.active_connections:
             if connection is None:
                 continue
@@ -119,6 +121,8 @@ class LengthServer:
     def run_server(self):
         """Start Server."""
         self.server.listen(16)
+        # I realize that there is never more than one active connection
+        # this is really just a proof of concept
         while True:
             print("Waiting for connection.")
             self.active_connections.append(
