@@ -28,12 +28,14 @@ class Connection:
     connection: socket
     addr: tuple[str, int]
     msg_length: int
+    completed_interactions: bool
 
     def __init__(self, connection: socket, addr: tuple[str, int]):
         """Construct Connection class."""
         self.connection = connection
         self.addr = addr
         self.msg_length = -1
+        self.completed_interactions = False
 
     def __del__(self):
         """Deconstruct Connection class."""
@@ -46,6 +48,10 @@ class Connection:
             return self.addr == value.addr
         return False
 
+    def __bool__(self):
+        """Check if interactions have been completed."""
+        return self.completed_interactions
+
     def __set_packet_length(self) -> None:
         self.msg_length = int.from_bytes(self.connection.recv(4), "big")
 
@@ -54,6 +60,7 @@ class Connection:
         while len(data) < self.msg_length:
             more = self.connection.recv(self.msg_length - len(data))
             if not more:
+                self.completed_interactions = True
                 return None
             data += more
         return data
@@ -79,6 +86,8 @@ class Connection:
             self.__respond_success() if len(response) == self.msg_length \
                 else self.__respond_fail()
 
+        self.completed_interactions = True
+
 
 class LengthServer:
     """Create a server that return the length of received strings."""
@@ -100,16 +109,16 @@ class LengthServer:
         self.server.close()
         print("Closed socket.")
 
-    def __add_connection(self, connection, recv_addr) -> Connection | None:
+    def __add_connection(self, connection: socket, recv_addr: tuple[str, int])\
+            -> Connection | None:
         """Check for duplicate Connections.
 
         Returns Connection() if the connection is new, otherwise returns None
         """
         print(f"Recieved connection from {recv_addr}")
-        # check for duplicate connections
-        matching_addr = any(connect.addr == recv_addr
+        existing_addr = any(connect.addr == recv_addr
                             for connect in self.active_connections)
-        return None if matching_addr else Connection(connection, recv_addr)
+        return None if existing_addr else Connection(connection, recv_addr)
 
     def __interact_clients(self):
         """Do specified activity with clients."""
@@ -129,7 +138,10 @@ class LengthServer:
                 self.__add_connection(*self.server.accept()))
 
             self.__interact_clients()
-            del self.active_connections[:]
+            # Disconnect from clients that have completed their interactions
+            for idx, conn in enumerate(self.active_connections):
+                if conn:
+                    del self.active_connections[idx]
 
 
 if __name__ == "__main__":
