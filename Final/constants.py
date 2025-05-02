@@ -18,13 +18,3 @@ assignment may, for the purpose of assessing this assignment:
 
 SERVER_READ_ADDR = ("localhost", 8000)
 SERVER_WRITE_ADDR = ("localhost", 9000)
-
-MESSAGE_TYPES = ["START",
-                 "EXIT",
-                 "BROADCAST",
-                 "PRIVATE",
-                 "VERIFY",
-                 "MESSAGE",
-                 "ERROR",
-                 "CONT"
-                 ]

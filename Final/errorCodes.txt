@@ -1,0 +1,16 @@
+ERROR CODES:
+	1 - invalid client name
+	2 - client name already exists
+	3 - incorrect verification num
+	4 - invalid message type
+	5 - invalid message formatting
+	
+COMMANDS:
+	"START", <sender name>
+	"EXIT", <sender name>
+	"BROADCAST", <sender name>, <message>
+	"PRIVATE", <sender name>, <message>, <recipient name>
+	"VERIFY", <verify num>
+	"MESSAGE", <sender name>, <message>, <is private>
+	"ERROR", <error code>, <is fatal>
+	"CONT"
